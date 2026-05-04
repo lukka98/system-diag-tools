@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Support Assistant</title>
+    <title>Support Assistant Pro</title>
     <style>
-        /* Variabili stile Apple */
         :root {
             --bg-color: #fbfbfd;
             --text-color: #1d1d1f;
@@ -17,126 +16,46 @@
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
-            /* Usa il font nativo del sistema (es. San Francisco su Mac, Segoe su Windows) */
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            height: 100vh;
+            margin: 0; padding: 0; display: flex; justify-content: center; height: 100vh;
             -webkit-font-smoothing: antialiased;
         }
 
-        /* Contenitore centrale stile iMessage / ChatGPT */
         #app-container {
-            width: 100%;
-            max-width: 760px;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            padding: 40px 20px 0 20px;
-            box-sizing: border-box;
+            width: 100%; max-width: 760px; display: flex; flex-direction: column;
+            height: 100vh; padding: 40px 20px 0 20px; box-sizing: border-box;
         }
 
-        h3 {
-            text-align: center;
-            font-weight: 600;
-            font-size: 14px;
-            letter-spacing: 0.5px;
-            color: var(--text-secondary);
-            margin: 0 0 5px 0;
-            text-transform: uppercase;
-        }
+        h3 { text-align: center; font-weight: 600; font-size: 14px; letter-spacing: 0.5px; color: var(--text-secondary); margin: 0 0 5px 0; text-transform: uppercase; }
+        .status { text-align: center; font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; min-height: 20px; }
 
-        .status {
-            text-align: center;
-            font-size: 13px;
-            color: var(--text-secondary);
-            margin-bottom: 20px;
-            min-height: 20px;
-        }
-
-        /* Area messaggi con scrollbar invisibile */
-        #output {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding-right: 10px;
-            margin-bottom: 20px;
-            scroll-behavior: smooth;
-        }
-
+        #output { flex-grow: 1; overflow-y: auto; padding-right: 10px; margin-bottom: 20px; scroll-behavior: smooth; }
         #output::-webkit-scrollbar { width: 6px; }
         #output::-webkit-scrollbar-track { background: transparent; }
         #output::-webkit-scrollbar-thumb { background: #e5e5ea; border-radius: 10px; }
 
-        /* Stile dei messaggi e testo grande */
-        .message-block {
-            margin-bottom: 30px;
-            /* L'animazione di evanescenza */
-            animation: fadeAndSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-            opacity: 0;
-            transform: translateY(15px);
-        }
-
-        .role-label {
-            font-size: 13px;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-
+        .message-block { margin-bottom: 30px; animation: fadeAndSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(15px); }
+        .role-label { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
         .role-user { color: var(--text-secondary); }
         .role-ai { color: var(--accent-color); }
+        .message-content { font-size: 18px; line-height: 1.6; color: var(--text-color); white-space: pre-wrap; }
 
-        .message-content {
-            font-size: 18px; /* Testo grande e chiaro */
-            line-height: 1.6;
-            color: var(--text-color);
-            white-space: pre-wrap; /* Mantiene la formattazione a capo corretta */
-        }
-
-        /* Barra di input ergonomica galleggiante */
-        #input-container {
-            padding-bottom: 40px; /* Staccata dal fondo */
-            background: linear-gradient(to top, var(--bg-color) 60%, transparent);
-        }
-
+        #input-container { padding-bottom: 40px; background: linear-gradient(to top, var(--bg-color) 60%, transparent); }
         #input-area {
-            width: 100%;
-            padding: 18px 24px;
-            font-size: 16px;
-            border: 1px solid var(--border-color);
-            border-radius: 30px;
-            background: #ffffff;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-            transition: all 0.3s ease;
-            box-sizing: border-box;
-            font-family: inherit;
-            outline: none;
-            color: var(--text-color);
+            width: 100%; padding: 18px 24px; font-size: 16px; border: 1px solid var(--border-color);
+            border-radius: 30px; background: #ffffff; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+            transition: all 0.3s ease; box-sizing: border-box; font-family: inherit; outline: none; color: var(--text-color);
         }
+        #input-area:focus { border-color: var(--accent-color); box-shadow: 0 4px 24px rgba(0, 102, 204, 0.12); }
 
-        #input-area:focus {
-            border-color: var(--accent-color);
-            box-shadow: 0 4px 24px rgba(0, 102, 204, 0.12);
-        }
-
-        /* Il keyframe per la comparsa */
-        @keyframes fadeAndSlideIn {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+        @keyframes fadeAndSlideIn { to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
-
     <div id="app-container">
-        <h3>Support Center</h3>
-        <div id="status" class="status">Connessione sicura in corso...</div>
-        
+        <h3>Support Center (Llama 3.1)</h3>
+        <div id="status" class="status">Inizializzazione motore AI in corso...</div>
         <div id="output"></div>
-        
         <div id="input-container">
             <input type="text" id="input-area" placeholder="Scrivi il sintomo o la richiesta del cliente..." autocomplete="off" disabled>
         </div>
@@ -149,7 +68,8 @@
         const output = document.getElementById("output");
         const inputArea = document.getElementById("input-area");
 
-        const selectedModel = "Llama-3.2-3B-Instruct-q4f16_1-MLC";
+        // Usiamo il modello pesante e performante: Llama 3.1 (8B)
+        const selectedModel = "Llama-3.1-8B-Instruct-q4f16_1-MLC";
 
         async function init() {
             const engine = new webllm.MLCEngine();
@@ -175,7 +95,6 @@
                     const prompt = inputArea.value;
                     inputArea.value = "";
                     
-                    // Mostra la richiesta dell'utente con animazione
                     output.innerHTML += `
                         <div class="message-block">
                             <div class="role-label role-user">Tu</div>
@@ -185,24 +104,18 @@
                     output.scrollTop = output.scrollHeight;
                     statusLabel.innerText = "Elaborazione in corso...";
                     
-                    // 1. Il recinto: diamo regole molto più severe su come deve parlare
+                    // Regole rigide per evitare allucinazioni
                     const messages = [
-                        { 
-                            role: "system", 
-                            content: "Sei un assistente tecnico IT pragmatico. Rispondi in italiano in modo estremamente semplice, passo-passo e senza usare termini tecnici inutili o inventati. Se una procedura è banale, non complicarla." 
-                        },
+                        { role: "system", content: "Sei un assistente tecnico IT pragmatico. Rispondi in italiano in modo estremamente semplice, passo-passo e senza usare termini tecnici inutili o inventati. Se una procedura è banale, non complicarla." },
                         { role: "user", content: prompt }
                     ];
                     
-                    // 2. Il freno alla fantasia: impostiamo la temperatura a 0.2 (molto logica)
+                    // Temperatura bassa per risposte logiche e precise
                     const reply = await engine.chat.completions.create({ 
                         messages: messages,
                         temperature: 0.2
                     });
                     
-                    const reply = await engine.chat.completions.create({ messages });
-                    
-                    // Mostra la risposta dell'IA con animazione
                     output.innerHTML += `
                         <div class="message-block">
                             <div class="role-label role-ai">Assistente</div>
