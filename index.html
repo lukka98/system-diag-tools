@@ -2,21 +2,145 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>System Log Viewer v4.2.1</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support Assistant</title>
     <style>
-       body { background: #f3f4f6; color: #1f2937; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 14px; margin: 0; padding: 20px; display: flex; flex-direction: column; height: 95vh; box-sizing: border-box; }
-h3 { color: #374151; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-top: 0; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }
-.status { color: #6b7280; font-size: 11px; margin-bottom: 10px; font-weight: bold; }
-#output { background: #ffffff; border: 1px solid #d1d5db; border-radius: 8px; padding: 20px; flex-grow: 1; overflow-y: auto; margin-bottom: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); line-height: 1.6; }
-#input-area { width: 100%; background: #ffffff; border: 1px solid #d1d5db; border-radius: 8px; color: #1f2937; padding: 15px; font-size: 14px; box-sizing: border-box; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); transition: border 0.2s; }
-#input-area:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.2); }
+        /* Variabili stile Apple */
+        :root {
+            --bg-color: #fbfbfd;
+            --text-color: #1d1d1f;
+            --text-secondary: #86868b;
+            --accent-color: #0066cc;
+            --border-color: #d2d2d7;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            /* Usa il font nativo del sistema (es. San Francisco su Mac, Segoe su Windows) */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Contenitore centrale stile iMessage / ChatGPT */
+        #app-container {
+            width: 100%;
+            max-width: 760px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 40px 20px 0 20px;
+            box-sizing: border-box;
+        }
+
+        h3 {
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin: 0 0 5px 0;
+            text-transform: uppercase;
+        }
+
+        .status {
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            min-height: 20px;
+        }
+
+        /* Area messaggi con scrollbar invisibile */
+        #output {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-right: 10px;
+            margin-bottom: 20px;
+            scroll-behavior: smooth;
+        }
+
+        #output::-webkit-scrollbar { width: 6px; }
+        #output::-webkit-scrollbar-track { background: transparent; }
+        #output::-webkit-scrollbar-thumb { background: #e5e5ea; border-radius: 10px; }
+
+        /* Stile dei messaggi e testo grande */
+        .message-block {
+            margin-bottom: 30px;
+            /* L'animazione di evanescenza */
+            animation: fadeAndSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: translateY(15px);
+        }
+
+        .role-label {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .role-user { color: var(--text-secondary); }
+        .role-ai { color: var(--accent-color); }
+
+        .message-content {
+            font-size: 18px; /* Testo grande e chiaro */
+            line-height: 1.6;
+            color: var(--text-color);
+            white-space: pre-wrap; /* Mantiene la formattazione a capo corretta */
+        }
+
+        /* Barra di input ergonomica galleggiante */
+        #input-container {
+            padding-bottom: 40px; /* Staccata dal fondo */
+            background: linear-gradient(to top, var(--bg-color) 60%, transparent);
+        }
+
+        #input-area {
+            width: 100%;
+            padding: 18px 24px;
+            font-size: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 30px;
+            background: #ffffff;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+            font-family: inherit;
+            outline: none;
+            color: var(--text-color);
+        }
+
+        #input-area:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 4px 24px rgba(0, 102, 204, 0.12);
+        }
+
+        /* Il keyframe per la comparsa */
+        @keyframes fadeAndSlideIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
     </style>
 </head>
 <body>
-    <h3>SYSTEM_DIAGNOSTIC_LOG_STREAM</h3>
-    <div id="status" class="status">Sincronizzazione database centrale in corso...</div>
-    <div id="output"></div>
-    <input type="text" id="input-area" placeholder="Inserire parametro di ricerca..." disabled>
+
+    <div id="app-container">
+        <h3>Support Center</h3>
+        <div id="status" class="status">Connessione sicura in corso...</div>
+        
+        <div id="output"></div>
+        
+        <div id="input-container">
+            <input type="text" id="input-area" placeholder="Scrivi il sintomo o la richiesta del cliente..." autocomplete="off" disabled>
+        </div>
+    </div>
 
     <script type="module">
         import * as webllm from "https://esm.run/@mlc-ai/web-llm";
@@ -25,7 +149,6 @@ h3 { color: #374151; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; mar
         const output = document.getElementById("output");
         const inputArea = document.getElementById("input-area");
 
-        // Usiamo Phi-3.5-mini: incredibilmente intelligente, ma pesa solo ~2GB
         const selectedModel = "Phi-3.5-mini-instruct-q4f16_1-MLC";
 
         async function init() {
@@ -34,17 +157,16 @@ h3 { color: #374151; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; mar
             engine.setInitProgressCallback((report) => {
                 statusLabel.innerText = report.text;
                 if (report.progress === 1) {
-                    statusLabel.innerText = "SISTEMA ONLINE - CONNESSIONE STABILITA";
+                    statusLabel.innerText = "Sistema Operativo - Pronto";
                 }
             });
 
             try {
-                // Questo comando scaricherà i 2GB nella Cache HTTPS del browser
                 await engine.reload(selectedModel);
                 inputArea.disabled = false;
                 inputArea.focus();
             } catch (e) {
-                statusLabel.innerText = "ERRORE: Timeout o blocco proxy aziendale.";
+                statusLabel.innerText = "Errore di connessione.";
                 console.error(e);
             }
 
@@ -52,16 +174,33 @@ h3 { color: #374151; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; mar
                 if (e.key === "Enter" && inputArea.value.trim() !== "") {
                     const prompt = inputArea.value;
                     inputArea.value = "";
-                    output.innerHTML += `<div><b style="color: #007acc;">[USER]:</b> ${prompt}</div>`;
+                    
+                    // Mostra la richiesta dell'utente con animazione
+                    output.innerHTML += `
+                        <div class="message-block">
+                            <div class="role-label role-user">Tu</div>
+                            <div class="message-content" style="color: var(--text-secondary);">${prompt}</div>
+                        </div>`;
+                    
+                    output.scrollTop = output.scrollHeight;
+                    statusLabel.innerText = "Elaborazione in corso...";
                     
                     const messages = [
-                        { role: "system", content: "Sei un esperto di assistenza tecnica informatica. Rispondi in italiano in modo breve, preciso e professionale." },
+                        { role: "system", content: "Sei un assistente tecnico informatico. Rispondi in italiano in modo chiaro, usando liste se necessario." },
                         { role: "user", content: prompt }
                     ];
                     
                     const reply = await engine.chat.completions.create({ messages });
-                    output.innerHTML += `<div><b style="color: #ce9178;">[ASSISTANT]:</b> ${reply.choices[0].message.content}</div><hr style="border:0; border-top:1px solid #222">`;
+                    
+                    // Mostra la risposta dell'IA con animazione
+                    output.innerHTML += `
+                        <div class="message-block">
+                            <div class="role-label role-ai">Assistente</div>
+                            <div class="message-content">${reply.choices[0].message.content}</div>
+                        </div>`;
+                        
                     output.scrollTop = output.scrollHeight;
+                    statusLabel.innerText = "Sistema Operativo - Pronto";
                 }
             });
         }
