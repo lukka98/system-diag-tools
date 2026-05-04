@@ -185,10 +185,20 @@
                     output.scrollTop = output.scrollHeight;
                     statusLabel.innerText = "Elaborazione in corso...";
                     
+                    // 1. Il recinto: diamo regole molto più severe su come deve parlare
                     const messages = [
-                        { role: "system", content: "Sei un assistente tecnico informatico. Rispondi in italiano in modo chiaro, usando liste se necessario." },
+                        { 
+                            role: "system", 
+                            content: "Sei un assistente tecnico IT pragmatico. Rispondi in italiano in modo estremamente semplice, passo-passo e senza usare termini tecnici inutili o inventati. Se una procedura è banale, non complicarla." 
+                        },
                         { role: "user", content: prompt }
                     ];
+                    
+                    // 2. Il freno alla fantasia: impostiamo la temperatura a 0.2 (molto logica)
+                    const reply = await engine.chat.completions.create({ 
+                        messages: messages,
+                        temperature: 0.2
+                    });
                     
                     const reply = await engine.chat.completions.create({ messages });
                     
