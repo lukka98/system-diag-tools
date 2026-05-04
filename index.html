@@ -11,11 +11,11 @@
             --text-secondary: #86868b;
             --accent-color: #0066cc;
             --border-color: #d2d2d7;
+            --danger-color: #ff3b30;
         }
 
         body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            background-color: var(--bg-color); color: var(--text-color);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0; padding: 0; display: flex; justify-content: center; height: 100vh;
             -webkit-font-smoothing: antialiased;
@@ -31,16 +31,8 @@
         .status-container { text-align: center; margin-bottom: 20px; min-height: 40px; }
         .status { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
 
-        /* Stile della barra di caricamento Apple */
-        #progress-bg {
-            width: 100%; height: 6px; background-color: #e5e5ea;
-            border-radius: 3px; overflow: hidden;
-            transition: opacity 0.5s ease;
-        }
-        #progress-fill {
-            height: 100%; width: 0%; background-color: var(--accent-color);
-            border-radius: 3px; transition: width 0.3s ease;
-        }
+        #progress-bg { width: 100%; height: 6px; background-color: #e5e5ea; border-radius: 3px; overflow: hidden; transition: opacity 0.5s ease; }
+        #progress-fill { height: 100%; width: 0%; background-color: var(--accent-color); border-radius: 3px; transition: width 0.3s ease; }
 
         #output { flex-grow: 1; overflow-y: auto; padding-right: 10px; margin-bottom: 20px; scroll-behavior: smooth; }
         #output::-webkit-scrollbar { width: 6px; }
@@ -54,14 +46,39 @@
         .message-content { font-size: 18px; line-height: 1.6; color: var(--text-color); white-space: pre-wrap; }
 
         #input-container { padding-bottom: 40px; background: linear-gradient(to top, var(--bg-color) 60%, transparent); }
+        
+        /* Layout per tenere insieme input e bottone microfono */
+        .input-wrapper { display: flex; gap: 12px; align-items: center; }
+        
         #input-area {
-            width: 100%; padding: 18px 24px; font-size: 16px; border: 1px solid var(--border-color);
+            flex-grow: 1; padding: 18px 24px; font-size: 16px; border: 1px solid var(--border-color);
             border-radius: 30px; background: #ffffff; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
             transition: all 0.3s ease; box-sizing: border-box; font-family: inherit; outline: none; color: var(--text-color);
         }
         #input-area:focus { border-color: var(--accent-color); box-shadow: 0 4px 24px rgba(0, 102, 204, 0.12); }
 
+        /* Stile del bottone Microfono */
+        #mic-btn {
+            background-color: #ffffff; border: 1px solid var(--border-color); border-radius: 50%;
+            width: 56px; height: 56px; font-size: 22px; display: flex; justify-content: center; align-items: center;
+            cursor: pointer; flex-shrink: 0; transition: all 0.3s ease; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+            color: #555; outline: none;
+        }
+        #mic-btn:hover { background-color: #f1f1f1; }
+        #mic-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        /* Effetto registrazione attiva */
+        #mic-btn.recording {
+            background-color: var(--danger-color); color: white; border-color: var(--danger-color);
+            animation: pulse 1.5s infinite;
+        }
+
         @keyframes fadeAndSlideIn { to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.6); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(255, 59, 48, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+        }
     </style>
 </head>
 <body>
@@ -74,8 +91,12 @@
         </div>
 
         <div id="output"></div>
+        
         <div id="input-container">
-            <input type="text" id="input-area" placeholder="Scrivi il sintomo o la richiesta del cliente..." autocomplete="off" disabled>
+            <div class="input-wrapper">
+                <input type="text" id="input-area" placeholder="Scrivi o detta la richiesta del cliente..." autocomplete="off" disabled>
+                <button id="mic-btn" disabled title="Clicca per ascoltare la chiamata">🎤</button>
+            </div>
         </div>
     </div>
 
@@ -87,23 +108,70 @@
         const progressFill = document.getElementById("progress-fill");
         const output = document.getElementById("output");
         const inputArea = document.getElementById("input-area");
+        const micBtn = document.getElementById("mic-btn");
 
         const selectedModel = "Llama-3.1-8B-Instruct-q4f16_1-MLC";
+
+        // --- MOTORE RICONOSCIMENTO VOCALE (CHROME NATIVO) ---
+        let recognition;
+        let isRecording = false;
+        let finalTranscript = '';
+
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = true; // Ascolta in modo continuo
+            recognition.interimResults = true; // Mostra il testo mentre parlo
+            recognition.lang = 'it-IT'; // Impostato in italiano
+
+            recognition.onstart = () => {
+                isRecording = true;
+                micBtn.classList.add("recording");
+                inputArea.placeholder = "In ascolto... (parla ora)";
+            };
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript + ' ';
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+                // Scrive nella barra di testo quello che capisce
+                inputArea.value = finalTranscript + interimTranscript;
+            };
+
+            recognition.onend = () => {
+                isRecording = false;
+                micBtn.classList.remove("recording");
+                inputArea.placeholder = "Scrivi o detta la richiesta del cliente...";
+            };
+
+            micBtn.addEventListener("click", () => {
+                if (isRecording) {
+                    recognition.stop();
+                } else {
+                    finalTranscript = inputArea.value ? inputArea.value + ' ' : ''; // Mantieni testo già scritto
+                    recognition.start();
+                }
+            });
+        } else {
+            console.warn("Il riconoscimento vocale non è supportato in questo browser.");
+            micBtn.style.display = "none"; // Nasconde il microfono se usi Firefox o vecchi browser
+        }
+        // ----------------------------------------------------
 
         async function init() {
             const engine = new webllm.MLCEngine();
 
             engine.setInitProgressCallback((report) => {
-                // Aggiorna il testo con i dettagli (MB scaricati ecc)
                 statusLabel.innerText = report.text;
-                
-                // Calcola la percentuale e aggiorna la larghezza della barra azzurra
                 const percentage = Math.round(report.progress * 100);
                 progressFill.style.width = percentage + "%";
 
                 if (report.progress === 1) {
                     statusLabel.innerText = "Sistema Operativo - Pronto";
-                    // Nasconde dolcemente la barra quando ha finito
                     progressBg.style.opacity = "0";
                     setTimeout(() => progressBg.style.display = "none", 500);
                 }
@@ -112,6 +180,7 @@
             try {
                 await engine.reload(selectedModel);
                 inputArea.disabled = false;
+                micBtn.disabled = false; // Abilita il microfono
                 inputArea.focus();
             } catch (e) {
                 statusLabel.innerText = "Errore di connessione. Controlla la rete.";
@@ -119,14 +188,19 @@
                 console.error(e);
             }
 
-            inputArea.addEventListener("keypress", async (e) => {
-                if (e.key === "Enter" && inputArea.value.trim() !== "") {
+            // Invio del testo all'IA
+            async function inviaPrompt() {
+                if (inputArea.value.trim() !== "") {
+                    // Se sto ancora registrando, ferma il microfono in automatico prima di inviare
+                    if (isRecording) recognition.stop(); 
+
                     const prompt = inputArea.value;
                     inputArea.value = "";
+                    finalTranscript = ""; // Resetta la memoria vocale
                     
                     output.innerHTML += `
                         <div class="message-block">
-                            <div class="role-label role-user">Tu</div>
+                            <div class="role-label role-user">Cliente / Operatore</div>
                             <div class="message-content" style="color: var(--text-secondary);">${prompt}</div>
                         </div>`;
                     
@@ -134,7 +208,7 @@
                     statusLabel.innerText = "Elaborazione in corso...";
                     
                     const messages = [
-                        { role: "system", content: "Sei un assistente tecnico IT pragmatico. Rispondi in italiano in modo estremamente semplice, passo-passo e senza usare termini tecnici inutili o inventati. Se una procedura è banale, non complicarla." },
+                        { role: "system", content: "Sei un assistente tecnico IT di primo livello. Ti verranno passate le trascrizioni dei problemi dei clienti. Analizzale e fornisci all'operatore una soluzione a punti, brevissima e pragmatica in italiano. Ignora le parole a caso tipiche delle trascrizioni vocali." },
                         { role: "user", content: prompt }
                     ];
                     
@@ -145,12 +219,19 @@
                     
                     output.innerHTML += `
                         <div class="message-block">
-                            <div class="role-label role-ai">Assistente</div>
+                            <div class="role-label role-ai">Soluzione Consigliata</div>
                             <div class="message-content">${reply.choices[0].message.content}</div>
                         </div>`;
                         
                     output.scrollTop = output.scrollHeight;
                     statusLabel.innerText = "Sistema Operativo - Pronto";
+                }
+            }
+
+            // Permette l'invio col tasto Invio
+            inputArea.addEventListener("keypress", async (e) => {
+                if (e.key === "Enter") {
+                    await inviaPrompt();
                 }
             });
         }
