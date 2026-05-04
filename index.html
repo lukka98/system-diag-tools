@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>System Log Viewer v4.2.1</title>
+    <style>
+        body { background: #1e1e1e; color: #d4d4d4; font-family: 'Courier New', monospace; font-size: 12px; margin: 20px; }
+        #output { border: 1px solid #333; padding: 10px; height: 450px; overflow-y: auto; background: #000; margin-bottom: 10px; }
+        #input-area { width: 100%; background: #000; border: 1px solid #333; color: #00ff00; padding: 10px; outline: none; }
+        .status { color: #555; font-style: italic; }
+    </style>
+</head>
+<body>
+    <h3>SYSTEM_DIAGNOSTIC_LOG_STREAM</h3>
+    <div id="status" class="status">Sincronizzazione database centrale in corso...</div>
+    <div id="output"></div>
+    <input type="text" id="input-area" placeholder="Inserire parametro di ricerca..." disabled>
+
+    <script type="module">
+        import * as webllm from "https://esm.run/@mlc-ai/web-llm";
+
+        const statusLabel = document.getElementById("status");
+        const output = document.getElementById("output");
+        const inputArea = document.getElementById("input-area");
+
+        // Usiamo Phi-3.5-mini: incredibilmente intelligente, ma pesa solo ~2GB
+        const selectedModel = "Phi-3.5-mini-instruct-q4f16_1-MLC";
+
+        async function init() {
+            const engine = new webllm.MLCEngine();
+
+            engine.setInitProgressCallback((report) => {
+                statusLabel.innerText = report.text;
+                if (report.progress === 1) {
+                    statusLabel.innerText = "SISTEMA ONLINE - CONNESSIONE STABILITA";
+                }
+            });
+
+            try {
+                // Questo comando scaricherà i 2GB nella Cache HTTPS del browser
+                await engine.reload(selectedModel);
+                inputArea.disabled = false;
+                inputArea.focus();
+            } catch (e) {
+                statusLabel.innerText = "ERRORE: Timeout o blocco proxy aziendale.";
+                console.error(e);
+            }
+
+            inputArea.addEventListener("keypress", async (e) => {
+                if (e.key === "Enter" && inputArea.value.trim() !== "") {
+                    const prompt = inputArea.value;
+                    inputArea.value = "";
+                    output.innerHTML += `<div><b style="color: #007acc;">[USER]:</b> ${prompt}</div>`;
+                    
+                    const messages = [
+                        { role: "system", content: "Sei un esperto di assistenza tecnica informatica. Rispondi in italiano in modo breve, preciso e professionale." },
+                        { role: "user", content: prompt }
+                    ];
+                    
+                    const reply = await engine.chat.completions.create({ messages });
+                    output.innerHTML += `<div><b style="color: #ce9178;">[ASSISTANT]:</b> ${reply.choices[0].message.content}</div><hr style="border:0; border-top:1px solid #222">`;
+                    output.scrollTop = output.scrollHeight;
+                }
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>
