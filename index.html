@@ -27,7 +27,20 @@
         }
 
         h3 { text-align: center; font-weight: 600; font-size: 14px; letter-spacing: 0.5px; color: var(--text-secondary); margin: 0 0 5px 0; text-transform: uppercase; }
-        .status { text-align: center; font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; min-height: 20px; }
+        
+        .status-container { text-align: center; margin-bottom: 20px; min-height: 40px; }
+        .status { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
+
+        /* Stile della barra di caricamento Apple */
+        #progress-bg {
+            width: 100%; height: 6px; background-color: #e5e5ea;
+            border-radius: 3px; overflow: hidden;
+            transition: opacity 0.5s ease;
+        }
+        #progress-fill {
+            height: 100%; width: 0%; background-color: var(--accent-color);
+            border-radius: 3px; transition: width 0.3s ease;
+        }
 
         #output { flex-grow: 1; overflow-y: auto; padding-right: 10px; margin-bottom: 20px; scroll-behavior: smooth; }
         #output::-webkit-scrollbar { width: 6px; }
@@ -53,8 +66,13 @@
 </head>
 <body>
     <div id="app-container">
-        <h3>Support Center (Llama 3.1)</h3>
-        <div id="status" class="status">Inizializzazione motore AI in corso...</div>
+        <h3>Support Center</h3>
+        
+        <div class="status-container" id="status-container">
+            <div id="status" class="status">Inizializzazione motore AI in corso...</div>
+            <div id="progress-bg"><div id="progress-fill"></div></div>
+        </div>
+
         <div id="output"></div>
         <div id="input-container">
             <input type="text" id="input-area" placeholder="Scrivi il sintomo o la richiesta del cliente..." autocomplete="off" disabled>
@@ -65,19 +83,29 @@
         import * as webllm from "https://esm.run/@mlc-ai/web-llm";
 
         const statusLabel = document.getElementById("status");
+        const progressBg = document.getElementById("progress-bg");
+        const progressFill = document.getElementById("progress-fill");
         const output = document.getElementById("output");
         const inputArea = document.getElementById("input-area");
 
-        // Usiamo il modello pesante e performante: Llama 3.1 (8B)
         const selectedModel = "Llama-3.1-8B-Instruct-q4f16_1-MLC";
 
         async function init() {
             const engine = new webllm.MLCEngine();
 
             engine.setInitProgressCallback((report) => {
+                // Aggiorna il testo con i dettagli (MB scaricati ecc)
                 statusLabel.innerText = report.text;
+                
+                // Calcola la percentuale e aggiorna la larghezza della barra azzurra
+                const percentage = Math.round(report.progress * 100);
+                progressFill.style.width = percentage + "%";
+
                 if (report.progress === 1) {
                     statusLabel.innerText = "Sistema Operativo - Pronto";
+                    // Nasconde dolcemente la barra quando ha finito
+                    progressBg.style.opacity = "0";
+                    setTimeout(() => progressBg.style.display = "none", 500);
                 }
             });
 
@@ -86,7 +114,8 @@
                 inputArea.disabled = false;
                 inputArea.focus();
             } catch (e) {
-                statusLabel.innerText = "Errore di connessione.";
+                statusLabel.innerText = "Errore di connessione. Controlla la rete.";
+                progressBg.style.display = "none";
                 console.error(e);
             }
 
@@ -104,13 +133,11 @@
                     output.scrollTop = output.scrollHeight;
                     statusLabel.innerText = "Elaborazione in corso...";
                     
-                    // Regole rigide per evitare allucinazioni
                     const messages = [
                         { role: "system", content: "Sei un assistente tecnico IT pragmatico. Rispondi in italiano in modo estremamente semplice, passo-passo e senza usare termini tecnici inutili o inventati. Se una procedura è banale, non complicarla." },
                         { role: "user", content: prompt }
                     ];
                     
-                    // Temperatura bassa per risposte logiche e precise
                     const reply = await engine.chat.completions.create({ 
                         messages: messages,
                         temperature: 0.2
